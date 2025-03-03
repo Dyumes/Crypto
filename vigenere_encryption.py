@@ -46,5 +46,3 @@ print(f"Encrypted text: {encrypted_text}")
 decrypted_text = decrypt_vigenere(encrypted_text, key)
 
 print(f"Decrypted text : {decrypted_text}")
-
-

@@ -1,51 +1,65 @@
-from tkinter import *
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QPlainTextEdit, QLineEdit, QPushButton, QGridLayout
+from PyQt5.QtCore import Qt
 from connection import *
 from threading import *
 
 connect()
 
-window = Tk()
-window.title("ChatApp")
-window.geometry("434x644")
-
-chat_area = Text(window, height=20, width=50, wrap=WORD)
-entry_field = Entry(window, width=40)
-send_button = Button(window, text=">")
-
-# Grid management
-chat_area.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
-entry_field.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
-send_button.grid(row=1, column=1, padx=10, pady=10)
-window.grid_rowconfigure(0, weight=1)  # Allow the chat area to expand
-window.grid_rowconfigure(1, weight=0)  # Don't allow the entry/button area to expand
-window.grid_columnconfigure(0, weight=1)  # Allow the entry field to expand horizontally
-
-# Action configs
 def send_message():
-    msg = entry_field.get()
-    chat_area.config(state=NORMAL)
-    chat_area.insert(END, f"\n<You> {msg}")
-    chat_area.see(END)
-    chat_area.config(state=DISABLED)
-    entry_field.delete(0, END)
-    send(msg)
+    msg = entry_field.text()
+    if msg != '':
+        chat_area.insertPlainText(f"\n<You> {msg}")
+        entry_field.setText("")
+        send(msg)
 
 def receive_message():
     while True:
         (type, msg) = listen()
-        if msg!=None:
-            chat_area.config(state=NORMAL)
-            chat_area.insert(END, f"\n<User> {msg.encode('latin1')}")
-            chat_area.see(END)
-            chat_area.config(state=DISABLED)
+        if msg!=None and msg != '':
+            chat_area.insertPlainText(f"\n<User> {msg}")
 
 def key_handler(event):
-    if event.keycode == 13:
+    if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
         send_message()
+    else:
+        QLineEdit.keyPressEvent(entry_field, event)
 
-window.bind("<Key>", key_handler)
-send_button.config(command=send_message)
-listening = Thread(target=receive_message)
-listening.start()
+try:
+    app = QApplication(sys.argv)
 
-window.mainloop()
+    window = QWidget()
+    window.setWindowTitle("ChatApp")
+    window.setGeometry(100, 100, 600, 800)
+
+    chat_area = QPlainTextEdit(window)
+    chat_area.setReadOnly(True)
+
+    entry_field = QLineEdit(window)
+    entry_field.setPlaceholderText("Type your message here...")
+
+    send_button = QPushButton(">", window)
+    send_button.clicked.connect(send_message)
+
+    # Add key listener to entry_field
+    entry_field.keyPressEvent = key_handler
+
+    # Grid management
+    gLayout = QGridLayout(window)
+    gLayout.addWidget(chat_area, 0, 0, 1, 2)
+    gLayout.addWidget(entry_field, 1, 0)
+    gLayout.addWidget(send_button, 1, 1)
+    gLayout.setRowStretch(0, 1)
+    gLayout.setRowStretch(1, 0)
+
+    # Listen to messages
+    listening = Thread(target=receive_message)
+    listening.start()
+
+    window.setLayout(gLayout)
+
+    window.show()
+
+    sys.exit(app.exec_())
+except Exception as e:
+    print(f"An error occurred: {e}")
