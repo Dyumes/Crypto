@@ -1,58 +1,47 @@
-import socket
-import struct
+from tkinter import *
+from connection import *
+from threading import *
 
-SERVER_ADDRESS = "vlbelintrocrypto.hevs.ch"
-SERVER_PORT = 6000
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-def connect():
-    try:
-        print("Trying to connect to the server...")
-        sock.connect((SERVER_ADDRESS, SERVER_PORT))
-        print("Connection successful")
-    except Exception as e:
-        print(f"Error: {e}")
-
-def close():
-    try:
-        sock.close()
-        print("\nConnection closed")
-    except Exception as e:
-        print(f"Error: {e}")
-
-def send(msg):
-    try:
-        header = b"ISCt"
-        length = struct.pack(">H", len(msg))
-        encoded_message = b"".join(struct.pack(">I", ord(c)) for c in msg)
-
-        full_message = header + length + encoded_message
-
-        sock.send(full_message)
-        print(f"\nMessage sent: {msg}")
-
-        response = sock.recv(1024)
-        print(f"Server's response: {response}")
-
-    except Exception as e:
-        print(f"Error: {e}")
-
-def listen():
-    try:
-        data = sock.recv(1024)
-        print(f"Received: {data.decode()}")
-
-    except socket.error as e:
-        print(f"Error receiving data: {e}")
-
-print("ChatApp - TEST")
 connect()
-while(1):
-    listen()
-    message = input("Please enter a new message : ")
-    if message != "/q":
-        send(message)
-    else:
-        close()
-        break
+
+window = Tk()
+window.title("ChatApp")
+window.geometry("434x644")
+
+chat_area = Text(window, height=20, width=50, wrap=WORD)
+entry_field = Entry(window, width=40)
+send_button = Button(window, text=">")
+
+# Grid management
+chat_area.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
+entry_field.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+send_button.grid(row=1, column=1, padx=10, pady=10)
+window.grid_rowconfigure(0, weight=1)  # Allow the chat area to expand
+window.grid_rowconfigure(1, weight=0)  # Don't allow the entry/button area to expand
+window.grid_columnconfigure(0, weight=1)  # Allow the entry field to expand horizontally
+
+# Action configs
+def disable_user_input(event):
+    return "break"
+
+def send_message():
+    msg = entry_field.get()
+    chat_area.insert(END, f"You: {msg}")
+    chat_area.see(END)
+    send(msg)
+
+def receive_message():
+    msg = listen()
+    if msg!=None:
+        chat_area.insert(END, f"User: {msg}")
+        chat_area.see(END)
+
+chat_area.bind("<Key>", disable_user_input)
+chat_area.bind("<Button-1>", disable_user_input)
+send_button.config(command=send_message)
+
+window.mainloop()
+
+while True:
+    listening = Thread(target=receive_message)
+    listening.start
