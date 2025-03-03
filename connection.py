@@ -32,17 +32,16 @@ def send(msg):
         sock.send(full_message)
         print(f"\nMessage sent: {msg}")
 
-        response = sock.recv(1024)
-        print(f"Server's response: {response}")
-
     except Exception as e:
         print(f"Error: {e}")
 
 def listen():
     try:
-        data = sock.recv(1024)
-        print(f"Received: {data.decode()}")
-        return data.decode()
+        sock.recv(3)
+        type = sock.recv(1).decode()
+        len = int.from_bytes(sock.recv(2)) * 4
+        msg = sock.recv(len).decode()
+        return (type, msg)
 
     except socket.error as e:
         print(f"Error receiving data: {e}")
