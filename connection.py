@@ -1,5 +1,6 @@
 import socket
 import struct
+import re
 
 SERVER_ADDRESS = "vlbelintrocrypto.hevs.ch"
 SERVER_PORT = 6000
@@ -23,7 +24,11 @@ def close():
 
 def send(msg):
     try:
+        servermsg_pattern = r"^task (shift|vigenere|RSA) (encode|decode) ([1-9][0-9]{0,3})$"
         header = b"ISCt"
+        if re.fullmatch(servermsg_pattern, msg):
+            header = b"ISCs"
+        
         length = struct.pack(">H", len(msg))
         encoded_message = b"".join(struct.pack(">I", ord(c)) for c in msg)
 
@@ -39,9 +44,9 @@ def listen():
     try:
         sock.recv(3)
         type = sock.recv(1).decode()
-        len = int.from_bytes(sock.recv(2)) * 4
+        len = int.from_bytes(sock.recv(2), byteorder="big") * 4
         msg = sock.recv(len).decode()
-        return (type, msg)
+        return (type, msg.replace('\x00', ''))
 
     except socket.error as e:
         print(f"Error receiving data: {e}")
