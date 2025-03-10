@@ -22,13 +22,8 @@ def close():
     except Exception as e:
         print(f"Error: {e}")
 
-def send(msg):
-    try:
-        servermsg_pattern = r"^task (shift|vigenere|RSA) (encode|decode) ([1-9][0-9]{0,3})$"
-        header = b"ISCt"
-        if re.fullmatch(servermsg_pattern, msg):
-            header = b"ISCs"
-        
+def send(msg, header):
+    try:        
         length = struct.pack(">H", len(msg))
         encoded_message = b"".join(struct.pack(">I", ord(c)) for c in msg)
 
