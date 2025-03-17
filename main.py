@@ -6,52 +6,41 @@ from threading import *
 
 from encryption import *
 
-code_type = None
-srv_msg = None
-srv_key = None
-
 connect()
 
 def send_message():
     msg = entry_field.text()
     if msg != '':
-        chat_area.insertPlainText(f"\n<You> {msg}")
+        chat_area.appendPlainText(f"<You> {msg}")
         entry_field.setText("")
-        # Tests if the user attempts to message the server
-        servermsg_pattern = r"^task (shift|vigenere|RSA) (encode|decode) ([1-9][0-9]{0,3})$"
-        if re.fullmatch(servermsg_pattern, msg):
-            global code_type
-            code_type = msg.split(' ')[1]
-            send(msg, b"ISCs")
+        if msg.startswith("/server "):
+            send(msg.removeprefix("/server "), b"ISCs")
+        elif msg.startswith(("/shift ", "/vigenere ", "/RSA ")):
+            encode_srv_message(msg)
         else:
             send(msg, b"ISCt")
-            #send(msg, b"ISCs")
 
-def decode_srv_message():
-    global code_type, srv_msg, srv_key
-    if code_type!=None and srv_msg!=None and srv_key!=None:
-        match code_type:
-            case "vigenere":
-                entry_field.setText(encrypt_vigenere(srv_msg, srv_key))
-            case "shift":
-                entry_field.setText(encrypt_shift(srv_msg, srv_key))
-                print("shift setText")
-        code_type = srv_key = srv_msg = None
+def encode_srv_message(msg):
+    codemsg_pattern = r'^/(shift|vigenere|RSA) "([^"]+)" "([^"]+)"$'
+    regMatch = re.match(codemsg_pattern, msg)
+    if regMatch:
+        encodedMsg = ""
+        match msg.split()[0]:
+            case "/shift": encodedMsg = f"shift: {encrypt_shift(regMatch.group(2), regMatch.group(3))}"
+            case "/vigenere": encodedMsg = f"vigenere: {encrypt_vigenere(regMatch.group(2), regMatch.group(3))}"
+            case "/RSA": encodedMsg = "RSA: -"
+        chat_area.appendPlainText(f"<ChatApp> Message encoded with {encodedMsg}")
+    else:
+        chat_area.appendPlainText(f"<ChatApp> Wrong command syntax")
 
 def receive_message():
     while True:
         (type, msg) = listen()
         if msg!=None and msg != '':
             if type=='t':
-                chat_area.insertPlainText(f"\n<User> {msg}")
+                chat_area.appendPlainText(f"<User> {msg}")
             elif type=='s':
-                global srv_key, srv_msg
-                if code_type!=None and srv_key==None:
-                    srv_key = msg.split("key ", 1)[-1]
-                elif srv_key!=None and srv_msg==None:
-                    srv_msg = msg
-                    decode_srv_message()
-                chat_area.insertPlainText(f"\n<Server> {msg}")
+                chat_area.appendPlainText(f"<Server> {msg}")
 
 def key_handler(event):
     if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:

@@ -40,7 +40,7 @@ def listen():
         sock.recv(3)
         type = sock.recv(1).decode()
         len = int.from_bytes(sock.recv(2), byteorder="big") * 4
-        msg = sock.recv(len).decode()
+        msg = sock.recv(len).decode(errors="ignore")
         return (type, msg.replace('\x00', ''))
 
     except socket.error as e:
