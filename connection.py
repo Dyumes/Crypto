@@ -1,6 +1,6 @@
 import socket
 import struct
-import re
+import time
 
 SERVER_ADDRESS = "vlbelintrocrypto.hevs.ch"
 SERVER_PORT = 6000
@@ -37,12 +37,15 @@ def send(msg, header):
 
 def listen():
     try:
+        sock.settimeout(1)  # Timeout after 1 second
         sock.recv(3)
         type = sock.recv(1).decode()
         len = int.from_bytes(sock.recv(2), byteorder="big") * 4
         msg = sock.recv(len).decode(errors="ignore")
         return (type, msg.replace('\x00', ''))
-
+    
+    except socket.timeout:
+        return None # Ignore timeout errors
     except socket.error as e:
         print(f"Error receiving data: {e}")
 

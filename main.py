@@ -1,16 +1,20 @@
 import sys
+import re
 from PyQt6.QtWidgets import QApplication, QWidget, QPlainTextEdit, QLineEdit, QPushButton, QGridLayout
 from PyQt6.QtCore import Qt
 from connection import *
 from threading import *
+from time import sleep
 
 from encryption import *
+
+isRunning = True
 
 connect()
 
 def send_message():
     msg = entry_field.text()
-    if msg != '':
+    if msg != "":
         chat_area.appendPlainText(f"<You> {msg}")
         entry_field.setText("")
         if msg.startswith("/server "):
@@ -34,19 +38,34 @@ def encode_srv_message(msg):
         chat_area.appendPlainText(f"<ChatApp> Wrong command syntax")
 
 def receive_message():
-    while True:
-        (type, msg) = listen()
-        if msg!=None and msg != '':
-            if type=='t':
-                chat_area.appendPlainText(f"<User> {msg}")
-            elif type=='s':
-                chat_area.appendPlainText(f"<Server> {msg}")
+    while isRunning:
+        result = listen()
+        if result:
+            type, msg = result
+            if msg is not None and msg != "":
+                if type=='t':
+                    chat_area.appendPlainText(f"<User> {msg}")
+                elif type=='s':
+                    chat_area.appendPlainText(f"<Server> {msg}")
+        sleep(0.1)
 
 def key_handler(event):
     if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
         send_message()
     else:
         QLineEdit.keyPressEvent(entry_field, event)
+
+def stop_listening():
+    global isRunning
+    isRunning = False
+    sleep(1)
+
+def close_event(event):
+    event.accept()
+    stop_listening()
+
+    send("", b"ISCt")
+    listening.join()
 
 try:
     app = QApplication(sys.argv)
@@ -77,13 +96,16 @@ try:
 
     # Listen to messages
     listening = Thread(target=receive_message)
+    listening.daemon = True
     listening.start()
 
     window.setLayout(gLayout)
 
+    window.closeEvent = close_event
+
     window.show()
 
-    app.exec()
+    sys.exit(app.exec())
 
 except Exception as e:
     print(f"An error occurred: {e}")

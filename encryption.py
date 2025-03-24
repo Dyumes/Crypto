@@ -17,6 +17,9 @@ def encrypt_vigenere(msg, key):
         encrypted_text.append(encrypted_char)
     return "".join(encrypted_text)
 
+#def encrypt_rsa(msg, key):
+    #
+
 def decrypt_vigenere(msg, key):
     decrypted_text = []
     for i in range(len(msg)):
