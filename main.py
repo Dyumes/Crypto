@@ -19,13 +19,13 @@ def send_message():
         entry_field.setText("")
         if msg.startswith("/server "):
             send(msg.removeprefix("/server "), b"ISCs")
-        elif msg.startswith(("/shift ", "/vigenere ", "/RSA ")):
+        elif msg.startswith(("/shift ", "/vigenere ", "/RSA ", "/hash")):
             encode_srv_message(msg)
         else:
             send(msg, b"ISCt")
 
 def encode_srv_message(msg):
-    codemsg_pattern = r'^/(shift|vigenere|RSA) "([^"]+)" "([^"]+)"$'
+    codemsg_pattern = r'^/(shift|vigenere|RSA|hash) "([^"]+)"(?: "([^"]+)")?$'
     regMatch = re.match(codemsg_pattern, msg)
     if regMatch:
         encodedMsg = ""
@@ -33,6 +33,7 @@ def encode_srv_message(msg):
             case "/shift": encodedMsg = f"shift: {encrypt_shift(regMatch.group(2), regMatch.group(3))}"
             case "/vigenere": encodedMsg = f"vigenere: {encrypt_vigenere(regMatch.group(2), regMatch.group(3))}"
             case "/RSA": encodedMsg = "RSA: -"
+            case "/hash": encodedMsg = f"Hash encode: {hash(regMatch.group(2))}"
         chat_area.appendPlainText(f"<ChatApp> Message encoded with {encodedMsg}")
     else:
         chat_area.appendPlainText(f"<ChatApp> Wrong command syntax")
