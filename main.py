@@ -1,6 +1,7 @@
 import sys
 import re
 from PyQt6.QtWidgets import QApplication, QWidget, QPlainTextEdit, QLineEdit, QPushButton, QGridLayout
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from connection import *
 from threading import *
@@ -33,9 +34,9 @@ def encode_srv_message(msg):
             case "/shift": encodedMsg = f"shift: {encrypt_shift(regMatch.group(2), regMatch.group(3))}"
             case "/vigenere": encodedMsg = f"vigenere: {encrypt_vigenere(regMatch.group(2), regMatch.group(3))}"
             case "/RSA": encodedMsg = "RSA: -"
-        chat_area.appendPlainText(f"<ChatApp> Message encoded with {encodedMsg}")
+        chat_area.appendPlainText(f"<ISC Chat> Message encoded with {encodedMsg}")
     else:
-        chat_area.appendPlainText(f"<ChatApp> Wrong command syntax")
+        chat_area.appendPlainText(f"<ISC Chat> Wrong command syntax")
 
 def receive_message():
     while isRunning:
@@ -71,8 +72,9 @@ try:
     app = QApplication(sys.argv)
 
     window = QWidget()
-    window.setWindowTitle("ChatApp")
+    window.setWindowTitle("ISC Secured Chat")
     window.setGeometry(100, 100, 600, 800)
+    window.setWindowIcon(QIcon("img/isc-logo.png"))
 
     chat_area = QPlainTextEdit(window)
     chat_area.setReadOnly(True)
