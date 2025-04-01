@@ -1,7 +1,6 @@
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QTimer
 from datetime import datetime
-from time import sleep
 import json
 
 class HtmlManager():

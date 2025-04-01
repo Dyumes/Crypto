@@ -1,6 +1,6 @@
 import sys
 import re
-from PyQt6.QtWidgets import QApplication, QWidget, QTextEdit, QLineEdit, QPushButton, QGridLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QLineEdit, QPushButton, QGridLayout
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from threading import *
@@ -27,16 +27,28 @@ def send_message():
             send(msg, b"ISCt")
 
 def encode_srv_message(msg):
-    codemsg_pattern = r'^/(shift|vigenere|RSA|hash) "([^"]+)"(?: "([^"]+)")?$'
+    codemsg_pattern = r'^/(shift|vigenere|RSA|hash) "([^"]+)"(?: "([^"]+)")?(?: "([^"]+)")?$'
     regMatch = re.match(codemsg_pattern, msg)
     if regMatch:
         encodedMsg = ""
+        server_message = ""
         match msg.split()[0]:
-            case "/shift": encodedMsg = f"shift: {encrypt_shift(regMatch.group(2), regMatch.group(3))}"
-            case "/vigenere": encodedMsg = f"vigenere: {encrypt_vigenere(regMatch.group(2), regMatch.group(3))}"
-            case "/RSA": encodedMsg = "RSA: -"
-            case "/hash": encodedMsg = f"hash: {hash(regMatch.group(2))}"
+            case "/shift": 
+                server_message = encrypt_shift(regMatch.group(2), regMatch.group(3))
+                encodedMsg = f"shift: {server_message}"
+            case "/vigenere": 
+                server_message =  encrypt_vigenere(regMatch.group(2), regMatch.group(3))
+                encodedMsg = f"vigenere: {server_message}"
+            case "/RSA": 
+                server_message = encrypt_rsa(regMatch.group(2), regMatch.group(3), regMatch.group(4))
+                text_to_add = ""
+                text_to_add += bytes(b for b in server_message if b != 0).decode('utf-8', 'replace')
+                encodedMsg = f"RSA: {text_to_add}"
+            case "/hash": 
+                server_message = hash(regMatch.group(2)) 
+                encodedMsg = f"Hash encode: {server_message}"
         htmlManager.addMessageBubble("ISC Chat", f"Message encoded with {encodedMsg}")
+        send(server_message, b"ISCs")
     else:
         htmlManager.addMessageBubble("ISC Chat", "Wrong command syntax")
 
