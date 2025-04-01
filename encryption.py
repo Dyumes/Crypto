@@ -87,10 +87,10 @@ priv_key = (n, d)
 
 message = "Hello, RSA!"
 cipher_text = encrypt_rsa(message, n, e)
-print("Chiffré (UTF-8) :", cipher_text)
+#print("Chiffré (UTF-8) :", cipher_text)
 
 decrypted = decrypt_rsa(cipher_text, priv_key)
-print("Déchiffré :", decrypted)
+#print("Déchiffré :", decrypted)
 
 crypt = ""
 

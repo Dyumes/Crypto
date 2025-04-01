@@ -1,12 +1,13 @@
 import sys
 import re
-from PyQt6.QtWidgets import QApplication, QWidget, QPlainTextEdit, QLineEdit, QPushButton, QGridLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QTextEdit, QLineEdit, QPushButton, QGridLayout
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
-from connection import *
 from threading import *
 from time import sleep
 
+from connection import *
+from htmlManager import *
 from encryption import *
 
 isRunning = True
@@ -16,7 +17,7 @@ connect()
 def send_message():
     msg = entry_field.text()
     if msg != "":
-        chat_area.appendPlainText(f"<You> {msg}")
+        htmlManager.addMessageBubble("You", msg, left=False)
         entry_field.setText("")
         if msg.startswith("/server "):
             send(msg.removeprefix("/server "), b"ISCs")
@@ -34,10 +35,10 @@ def encode_srv_message(msg):
             case "/shift": encodedMsg = f"shift: {encrypt_shift(regMatch.group(2), regMatch.group(3))}"
             case "/vigenere": encodedMsg = f"vigenere: {encrypt_vigenere(regMatch.group(2), regMatch.group(3))}"
             case "/RSA": encodedMsg = "RSA: -"
-            case "/hash": encodedMsg = f"Hash encode: {hash(regMatch.group(2))}"
-        chat_area.appendPlainText(f"<ISC Chat> Message encoded with {encodedMsg}")
+            case "/hash": encodedMsg = f"hash: {hash(regMatch.group(2))}"
+        htmlManager.addMessageBubble("ISC Chat", f"Message encoded with {encodedMsg}")
     else:
-        chat_area.appendPlainText(f"<ISC Chat> Wrong command syntax")
+        htmlManager.addMessageBubble("ISC Chat", "Wrong command syntax")
 
 def receive_message():
     while isRunning:
@@ -46,9 +47,9 @@ def receive_message():
             type, msg = result
             if msg is not None and msg != "":
                 if type=='t':
-                    chat_area.appendPlainText(f"<User> {msg}")
+                    htmlManager.addMessageBubble("User", msg)
                 elif type=='s':
-                    chat_area.appendPlainText(f"<Server> {msg}")
+                    htmlManager.addMessageBubble("Server", msg)
         sleep(0.1)
 
 def key_handler(event):
@@ -77,8 +78,7 @@ try:
     window.setGeometry(100, 100, 600, 800)
     window.setWindowIcon(QIcon("img/isc-logo.png"))
 
-    chat_area = QPlainTextEdit(window)
-    chat_area.setReadOnly(True)
+    htmlManager = HtmlManager(window)
 
     entry_field = QLineEdit(window)
     entry_field.setPlaceholderText("Type your message here...")
@@ -91,7 +91,7 @@ try:
 
     # Grid management
     gLayout = QGridLayout(window)
-    gLayout.addWidget(chat_area, 0, 0, 1, 2)
+    gLayout.addWidget(htmlManager.chat_area, 0, 0, 1, 2)
     gLayout.addWidget(entry_field, 1, 0)
     gLayout.addWidget(send_button, 1, 1)
     gLayout.setRowStretch(0, 1)
