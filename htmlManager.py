@@ -1,6 +1,7 @@
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, QUrl
 from datetime import datetime
+from pathlib import Path
 import json
 
 class HtmlManager():
@@ -9,6 +10,11 @@ class HtmlManager():
         self.bubblesToCreate = []
         self.isJsTaskRunning = False
         self.chat_area = QWebEngineView(window)
+
+        # Define the base URL with the absolute project directory path
+        project_dir = Path(__file__).resolve().parent
+        base_url = QUrl.fromLocalFile(str(project_dir) + "/")
+
         self.chat_area.setHtml("""
         <!DOCTYPE html>
         <html>
@@ -55,6 +61,11 @@ class HtmlManager():
             }
             .message {
                 margin-bottom: 5px;
+                overflow-wrap: break-word;
+            }
+            .message img {
+                max-width: 100%;
+                max-height: 100%;
             }
             .timestamp {
                 font-size: 12px;
@@ -67,7 +78,14 @@ class HtmlManager():
             <div id="chat" class="chat-container"></div>
         </body>
         </html>
-        """)
+        """, base_url)
+        # Add this inside chat-container if you want to test images :
+        # <div class="message-container left">
+        #     <div class="sender">Bastien Marthe</div>
+        #     <div class="message"><img src="img/isc-logo.png"></div>
+        #     <div class="timestamp">02/04/2025</div>
+        # </div>
+        self.chat_area.reload()
 
     def addMessageBubble(self, sender, msg, left=True, addToList=True):
         if addToList:
