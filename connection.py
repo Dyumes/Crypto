@@ -1,3 +1,4 @@
+
 import socket
 import struct
 import time
@@ -25,11 +26,16 @@ def close():
 def send(msg, header):
     try:        
         length = struct.pack(">H", len(msg))
-        encoded_message = b"".join(struct.pack(">I", ord(c)) for c in msg)
-
+        encoded_message = msg
+        if isinstance(msg, bytearray) == False:
+            encoded_message = b"".join(struct.pack(">I", ord(c)) for c in msg)
+        else:
+            # encoded_message = b"".join(struct.pack(">I", b) for b in msg)
+            encoded_message = b"".join(bytes([b]) for b in msg)
         full_message = header + length + encoded_message
 
         sock.send(full_message)
+        print(f"\nEncoded msg : {encoded_message}")
         print(f"\nMessage sent: {msg}")
 
     except Exception as e:
