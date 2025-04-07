@@ -21,35 +21,81 @@ def send_message():
         entry_field.setText("")
         if msg.startswith("/server "):
             send(msg.removeprefix("/server "), b"ISCs")
-        elif msg.startswith(("/shift ", "/vigenere ", "/RSA ", "/hash")):
+        elif msg.startswith(("/shift ", "/vigenere ", "/rsa ", "/hash", "/difhel")):
             encode_srv_message(msg)
         else:
             send(msg, b"ISCt")
 
 def encode_srv_message(msg):
-    codemsg_pattern = r'^/(shift|vigenere|RSA|hash) "([^"]+)"(?: "([^"]+)")?(?: "([^"]+)")?$'
-    regMatch = re.match(codemsg_pattern, msg)
-    if regMatch:
-        encodedMsg = ""
-        server_message = ""
-        match msg.split()[0]:
-            case "/shift": 
-                server_message = encrypt_shift(regMatch.group(2), regMatch.group(3))
-                encodedMsg = f"shift: {server_message}"
-            case "/vigenere": 
-                server_message =  encrypt_vigenere(regMatch.group(2), regMatch.group(3))
-                encodedMsg = f"vigenere: {server_message}"
-            case "/RSA": 
-                server_message = encrypt_rsa(regMatch.group(2), regMatch.group(3), regMatch.group(4))
+    # Define the command patterns
+    codemsg_patterns = {
+        'shift': r'^/shift\s+"([^"]+)"\s+"([^"]+)"$',                           # /shift "something" "something"
+        'vigenere': r'^/vigenere\s+"([^"]+)"\s+"([^"]+)"$',                     # /vigenere "something" "something"
+        'rsa': r'^/rsa\s+"([^"]+)"\s+"([^"]+)"\s+"([^"]+)"$',                   # /RSA "something" "something" "something"
+        'hash': r'^/hash\s+"([^"]+)"$',                                         # /hash "something"
+        'difhel': r'^/difhel\s*$',                                              # /difhel (no parameters)
+        'difhel_with_params': r'^/difhel\s+"([^"]+)"\s+"([^"]+)"\s+"([^"]+)"$', # /difhel "something" "something" "something"
+    }
+    # Check for each command type
+    found_syntax = False
+    for cmd, pattern in codemsg_patterns.items():
+        # codemsg_pattern = r'^/(shift|vigenere|RSA|hash) "([^"]+)"(?: "([^"]+)")?(?: "([^"]+)")?$'
+        regMatch = re.match(pattern, msg)
+        if regMatch:
+            found_syntax = True
+            encodedMsg = ""
+            server_message = ""
+            #match msg.split()[0]:
+            #    case "/shift": 
+            #        server_message = encrypt_shift(regMatch.group(2), regMatch.group(3))
+            #        encodedMsg = f"shift: {server_message}"
+            #    case "/vigenere": 
+            #        server_message =  encrypt_vigenere(regMatch.group(2), regMatch.group(3))
+            #        encodedMsg = f"vigenere: {server_message}"
+            #    case "/RSA": 
+            #        server_message = encrypt_rsa(regMatch.group(2), regMatch.group(3), regMatch.group(4))
+            #        text_to_add = ""
+            #        text_to_add += bytes(b for b in server_message if b != 0).decode('utf-8', 'replace')
+            #        encodedMsg = f"RSA: {text_to_add}"
+            #    case "/hash": 
+            #        server_message = hash(regMatch.group(2)) 
+            #        encodedMsg = f"Hash encode: {server_message}"
+            # Command matched, handle accordingly
+            if cmd == 'shift':
+                shiftmsg, shiftkey = regMatch.groups()
+                server_message = encrypt_shift(shiftmsg, shiftkey)
+                encodedMsg = f"Message encoded with shift: {server_message}"
+            elif cmd == 'vigenere':
+                vigmsg, vigkey = regMatch.groups()
+                server_message =  encrypt_vigenere(vigmsg, vigkey)
+                encodedMsg = f"Message encoded with vigenere: {server_message}"
+            elif cmd == 'rsa':
+                rsamsg, rsan, rsae = regMatch.groups()
+                server_message = encrypt_rsa(rsamsg, rsan, rsae)
                 text_to_add = ""
                 text_to_add += bytes(b for b in server_message if b != 0).decode('utf-8', 'replace')
-                encodedMsg = f"RSA: {text_to_add}"
-            case "/hash": 
-                server_message = hash(regMatch.group(2)) 
-                encodedMsg = f"Hash encode: {server_message}"
-        htmlManager.addMessageBubble("ISC Chat", f"Message encoded with {encodedMsg}")
-        send(server_message, b"ISCs")
-    else:
+                encodedMsg = f"Message encoded with RSA: {text_to_add}"
+            elif cmd == 'hash':
+                hashmsg = regMatch.groups()[0]
+                server_message = hash(hashmsg)
+                encodedMsg = f"Message encoded with Hash: {server_message}"
+            elif cmd == 'difhel':
+                p, g = generate_difhel()
+                server_message = f"{p},{g}"
+                encodedMsg = f"Diffie-Hellman generated modular: {p} and generator: {g}"
+            elif cmd == 'difhel_with_params':
+                difhelP, difhelG, gB = regMatch.groups()
+                gA, secretDH = secret_difhel(difhelP, difhelG, gB)
+                encodedMsg = f"Diffie-Hellman generated half-key: {gA}"
+                htmlManager.addMessageBubble("ISC Chat", encodedMsg)
+                send(str(gA), b"ISCs")
+                server_message = str(secretDH)
+                encodedMsg = f"Diffie-Hellman founded secret: {secretDH}"
+
+            htmlManager.addMessageBubble("ISC Chat", encodedMsg)
+            send(server_message, b"ISCs")
+
+    if found_syntax == False:
         htmlManager.addMessageBubble("ISC Chat", "Wrong command syntax")
 
 def receive_message():

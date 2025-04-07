@@ -1,5 +1,6 @@
 import random
 import hashlib
+from sympy import isprime, primitive_root, nextprime, randprime
 
 def hash(msg):
     data = msg
@@ -40,10 +41,26 @@ def decrypt_vigenere(msg, key):
         decrypted_text.append(decrypted_char)
     return "".join(decrypted_text)
 
+def generate_difhel():
+    p = nextprime(random.randint(1000, 5000))
+    while not isprime(p):  # Just to be sure
+        p = nextprime(random.randint(1000, 5000))
+    
+    g = primitive_root(p)
+    return (p, g)
+
+def secret_difhel(p, g, gB):
+    # Private key (Alice)
+    a = random.randint(2, int(p) - 2)
+    gA = pow(int(g), a, int(p))
+    # Shared secret
+    shared_secret = pow(int(gB), a, int(p))
+    return (gA, shared_secret)
+
 def generate_rsa_keys(n, e, bit_size=512):
 
-    p = sympy.randprime(2**(bit_size//2 - 1), 2**(bit_size//2))  
-    q = sympy.randprime(2**(bit_size//2 - 1), 2**(bit_size//2))  
+    p = randprime(2**(bit_size//2 - 1), 2**(bit_size//2))  
+    q = randprime(2**(bit_size//2 - 1), 2**(bit_size//2))  
     
     n = p * q 
     phi = (p - 1) * (q - 1)  

@@ -139,5 +139,5 @@ class HtmlManager():
                         left=self.bubblesToCreate[0]["left"],
                         addToList=False)
 
-            # Run the JS script with a slight delay to prevent overlap
-            QTimer.singleShot(100, run_js_with_delay)  # 100ms delay
+            # Always run this from the Qt main thread
+            QTimer.singleShot(0, lambda: QTimer.singleShot(100, run_js_with_delay))
