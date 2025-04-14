@@ -35,7 +35,6 @@ def send(msg, header):
         full_message = header + length + encoded_message
 
         sock.send(full_message)
-        #print(f"\nEncoded msg : {encoded_message}")
         print(f"\nMessage sent: {msg}")
 
     except Exception as e:

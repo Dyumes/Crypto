@@ -1,12 +1,15 @@
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QTimer, QUrl
+from PyQt6.QtCore import QTimer, QUrl, QObject, pyqtSignal
 from datetime import datetime
 from pathlib import Path
 import json
 
-class HtmlManager():
+class HtmlManager(QObject):
+    # Signal to trigger message addition from main thread
+    add_message_signal = pyqtSignal(dict)
 
     def __init__(self, window):
+        super().__init__()
         self.bubblesToCreate = []
         self.isJsTaskRunning = False
         self.chat_area = QWebEngineView(window)
@@ -28,6 +31,8 @@ class HtmlManager():
                 justify-content: flex-start;
                 height: 100%;
                 background-color: #f0f2f5;
+                margin: 0;
+                padding: 10px;
             }
             .chat-container {
                 width: 100%;
@@ -43,7 +48,7 @@ class HtmlManager():
                 border-radius: 10px;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
                 position: relative;
-                margin: 20px, 10px, 0px, 10px;
+                margin: 10px;
             }
             .message-container.left {
                 align-self: flex-start;
@@ -79,69 +84,57 @@ class HtmlManager():
         </body>
         </html>
         """, base_url)
-        # Add this inside chat-container if you want to test images :
-        # <div class="message-container left">
-        #     <div class="sender">Bastien Marthe</div>
-        #     <div class="message"><img src="img/isc-logo.png"></div>
-        #     <div class="timestamp">02/04/2025</div>
-        # </div>
+
+        # Connect the signal to the handler
+        self.add_message_signal.connect(self._process_message_queue)
         self.chat_area.reload()
 
     def addMessageBubble(self, sender, msg, left=True, addToList=True):
         if addToList:
-            self.bubblesToCreate.append({"sender": sender, "msg": msg, "left": left})
+            self.bubblesToCreate.append({
+                "sender": sender,
+                "msg": msg,
+                "left": left
+            })
 
-        if self.isJsTaskRunning == False:
-            #print("no js task running")
-            self.isJsTaskRunning = True
-            # Ensure chat_area.page() exists
-            if not self.chat_area.page():
-                print("Error: chat_area.page() is None")
-                return
+        # Emit signal to process the queue
+        self.add_message_signal.emit({})
 
-            # HTML content
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            bubble = f"""
-                <div class="sender">{sender}</div>
-                <div class="message">{msg}</div>
-                <div class="timestamp">{timestamp}</div>
-            """
-            # Message alignment
-            alignment_class = "left" if left else "right"
+    def _process_message_queue(self):
+        if not self.bubblesToCreate or self.isJsTaskRunning:
+            return
 
-            # JavaScript to insert the message safely
-            js_script = f"""
-                (function() {{
-                    var chat = document.getElementById('chat');
-                    if (!chat) {{
-                        return;
-                    }}
+        self.isJsTaskRunning = True
+        message = self.bubblesToCreate.pop(0)
 
-                    var container = document.createElement('div');
-                    container.classList.add('message-container', '{alignment_class}');
-                    container.innerHTML = {json.dumps(bubble)};
-                    chat.appendChild(container);
-                    window.scrollTo(0, document.body.scrollHeight);
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        bubble = f"""
+            <div class="sender">{message['sender']}</div>
+            <div class="message">{message['msg']}</div>
+            <div class="timestamp">{timestamp}</div>
+        """
+        alignment_class = "left" if message['left'] else "right"
 
-                    return "Success";
-                }})();
-            """
+        js_script = f"""
+            (function() {{
+                var chat = document.getElementById('chat');
+                if (!chat) {{
+                    console.error('Chat container not found');
+                    return;
+                }}
 
-            def run_js_with_delay():
-                #print("js task launched")
-                # Run JavaScript after a slight delay to ensure proper state
-                self.chat_area.page().runJavaScript(js_script)
-                #print("js task finished")
-                self.isJsTaskRunning = False
-                # delete the bubble that has been created from the list and creates the other ones if there are any
-                del self.bubblesToCreate[0]
-                if len(self.bubblesToCreate) != 0:
-                    self.addMessageBubble(
-                        self.bubblesToCreate[0]["sender"],
-                        self.bubblesToCreate[0]["msg"],
-                        left=self.bubblesToCreate[0]["left"],
-                        addToList=False)
+                var container = document.createElement('div');
+                container.classList.add('message-container', '{alignment_class}');
+                container.innerHTML = {json.dumps(bubble)};
+                chat.appendChild(container);
+                window.scrollTo(0, document.body.scrollHeight);
+                return "Success";
+            }})();
+        """
 
-            # Always run this from the Qt main thread
-            #print("timer launched")
-            QTimer.singleShot(0, lambda: QTimer.singleShot(100, run_js_with_delay))
+        def handle_js_result(result):
+            self.isJsTaskRunning = False
+            if self.bubblesToCreate:
+                QTimer.singleShot(0, self._process_message_queue)
+
+        self.chat_area.page().runJavaScript(js_script, handle_js_result)

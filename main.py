@@ -90,7 +90,6 @@ def receive_message():
             print(f"Received: {msg}")
             if msg is not None and msg != "":
                 if type=='t':
-                    #print("bubble user")
                     htmlManager.addMessageBubble("User", msg)
                 elif type=='s':
                     htmlManager.addMessageBubble("Server", msg)
