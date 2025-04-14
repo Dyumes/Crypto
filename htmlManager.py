@@ -92,6 +92,7 @@ class HtmlManager():
             self.bubblesToCreate.append({"sender": sender, "msg": msg, "left": left})
 
         if self.isJsTaskRunning == False:
+            #print("no js task running")
             self.isJsTaskRunning = True
             # Ensure chat_area.page() exists
             if not self.chat_area.page():
@@ -127,8 +128,10 @@ class HtmlManager():
             """
 
             def run_js_with_delay():
+                #print("js task launched")
                 # Run JavaScript after a slight delay to ensure proper state
                 self.chat_area.page().runJavaScript(js_script)
+                #print("js task finished")
                 self.isJsTaskRunning = False
                 # delete the bubble that has been created from the list and creates the other ones if there are any
                 del self.bubblesToCreate[0]
@@ -139,5 +142,6 @@ class HtmlManager():
                         left=self.bubblesToCreate[0]["left"],
                         addToList=False)
 
-            # Run the JS script with a slight delay to prevent overlap
-            QTimer.singleShot(100, run_js_with_delay)  # 100ms delay
+            # Always run this from the Qt main thread
+            #print("timer launched")
+            QTimer.singleShot(0, lambda: QTimer.singleShot(100, run_js_with_delay))
