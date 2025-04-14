@@ -39,27 +39,11 @@ def encode_srv_message(msg):
     # Check for each command type
     found_syntax = False
     for cmd, pattern in codemsg_patterns.items():
-        # codemsg_pattern = r'^/(shift|vigenere|RSA|hash) "([^"]+)"(?: "([^"]+)")?(?: "([^"]+)")?$'
         regMatch = re.match(pattern, msg)
         if regMatch:
             found_syntax = True
             encodedMsg = ""
             server_message = ""
-            #match msg.split()[0]:
-            #    case "/shift": 
-            #        server_message = encrypt_shift(regMatch.group(2), regMatch.group(3))
-            #        encodedMsg = f"shift: {server_message}"
-            #    case "/vigenere": 
-            #        server_message =  encrypt_vigenere(regMatch.group(2), regMatch.group(3))
-            #        encodedMsg = f"vigenere: {server_message}"
-            #    case "/RSA": 
-            #        server_message = encrypt_rsa(regMatch.group(2), regMatch.group(3), regMatch.group(4))
-            #        text_to_add = ""
-            #        text_to_add += bytes(b for b in server_message if b != 0).decode('utf-8', 'replace')
-            #        encodedMsg = f"RSA: {text_to_add}"
-            #    case "/hash": 
-            #        server_message = hash(regMatch.group(2)) 
-            #        encodedMsg = f"Hash encode: {server_message}"
             # Command matched, handle accordingly
             if cmd == 'shift':
                 shiftmsg, shiftkey = regMatch.groups()
@@ -103,8 +87,10 @@ def receive_message():
         result = listen()
         if result:
             type, msg = result
+            print(f"Received: {msg}")
             if msg is not None and msg != "":
                 if type=='t':
+                    print("bubble user")
                     htmlManager.addMessageBubble("User", msg)
                 elif type=='s':
                     htmlManager.addMessageBubble("Server", msg)
