@@ -83,4 +83,3 @@ graph TD
     I --> B
 ```
 *Developed for ISC Cryptography & Security course - HEI Valais*
-```
