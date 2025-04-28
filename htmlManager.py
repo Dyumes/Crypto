@@ -5,19 +5,36 @@ from pathlib import Path
 import json
 
 class HtmlManager(QObject):
-    # Signal to trigger message addition from main thread
+    """
+    Manages the chat interface display using QWebEngineView.
+    Handles message bubbles with proper threading and queuing.
+    """
+    
+    # Signal to safely add messages from non-main threads
     add_message_signal = pyqtSignal(dict)
 
     def __init__(self, window):
+        """
+        Initializes the chat interface.
+        
+        Args:
+            window: The parent QWidget window
+        """
         super().__init__()
-        self.bubblesToCreate = []
-        self.isJsTaskRunning = False
+        
+        # Message queue and execution state
+        self.bubblesToCreate = []      # Queue of pending messages
+        self.isJsTaskRunning = False   # Prevents concurrent JavaScript execution
+        
+        # Initialize WebEngine view
         self.chat_area = QWebEngineView(window)
-
-        # Define the base URL with the absolute project directory path
+        
+        # =============================================
+        # HTML/CSS Setup
+        # =============================================
         project_dir = Path(__file__).resolve().parent
         base_url = QUrl.fromLocalFile(str(project_dir) + "/")
-
+        
         self.chat_area.setHtml("""
         <!DOCTYPE html>
         <html>
@@ -84,12 +101,24 @@ class HtmlManager(QObject):
         </body>
         </html>
         """, base_url)
-
-        # Connect the signal to the handler
+        
+        # Connect signal to message handler
         self.add_message_signal.connect(self._process_message_queue)
         self.chat_area.reload()
 
+    # =============================================
+    # Public Interface
+    # =============================================
     def addMessageBubble(self, sender, msg, left=True, addToList=True):
+        """
+        Adds a message bubble to the chat interface.
+        
+        Args:
+            sender: Name of the message sender
+            msg: Message content (HTML-safe)
+            left: True for left-aligned (received), False for right-aligned (sent)
+            addToList: Whether to queue the message or process immediately
+        """
         if addToList:
             self.bubblesToCreate.append({
                 "sender": sender,
@@ -97,16 +126,21 @@ class HtmlManager(QObject):
                 "left": left
             })
 
-        # Emit signal to process the queue
+        # Trigger message processing
         self.add_message_signal.emit({})
 
+    # =============================================
+    # Message Processing
+    # =============================================
     def _process_message_queue(self):
+        """Processes the next message in the queue if not already running."""
         if not self.bubblesToCreate or self.isJsTaskRunning:
             return
 
         self.isJsTaskRunning = True
         message = self.bubblesToCreate.pop(0)
 
+        # Generate message HTML
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         bubble = f"""
             <div class="sender">{message['sender']}</div>
@@ -115,6 +149,7 @@ class HtmlManager(QObject):
         """
         alignment_class = "left" if message['left'] else "right"
 
+        # JavaScript to inject the message
         js_script = f"""
             (function() {{
                 var chat = document.getElementById('chat');
@@ -133,8 +168,11 @@ class HtmlManager(QObject):
         """
 
         def handle_js_result(result):
+            """Callback after JavaScript execution completes"""
             self.isJsTaskRunning = False
             if self.bubblesToCreate:
+                # Process next message after slight delay
                 QTimer.singleShot(0, self._process_message_queue)
 
+        # Execute the JavaScript
         self.chat_area.page().runJavaScript(js_script, handle_js_result)
