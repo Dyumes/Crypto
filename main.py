@@ -1,7 +1,7 @@
 import sys
 import re
-from PyQt6.QtWidgets import QApplication, QWidget, QLineEdit, QPushButton, QGridLayout
-from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication, QWidget, QLineEdit, QPushButton, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtCore import Qt
 from threading import *
 from time import sleep
@@ -333,8 +333,36 @@ try:
 
     window = QWidget()
     window.setWindowTitle("ISC Secured Chat")
-    window.setGeometry(100, 100, 600, 800)
+    window.setGeometry(100, 100, 800, 800)  # élargi à 800 pour laisser de la place au panneau de droite
     window.setWindowIcon(QIcon("img/isc-logo.png"))
+
+    # Banner setup
+    banner = QWidget()
+    banner.setStyleSheet("background-color: #2c3e50;")
+    banner_layout = QHBoxLayout(banner)
+
+    # Sub-widget to group logo and text
+    logo_text_widget = QWidget()
+    logo_text_layout = QHBoxLayout(logo_text_widget)
+    logo_text_layout.setContentsMargins(0, 0, 0, 0)
+    logo_text_layout.setSpacing(10)
+
+    logo_label = QLabel()
+    logo_pixmap = QPixmap("img/isc-logo.png").scaled(50, 50, aspectRatioMode=Qt.AspectRatioMode.KeepAspectRatio)
+    logo_label.setPixmap(logo_pixmap)
+    logo_text_layout.addWidget(logo_label)
+
+    title_label = QLabel("ISC Secured Chat")
+    title_label.setStyleSheet("""
+        color: white;
+        font-size: 20px;
+        font-weight: bold;
+    """)
+    logo_text_layout.addWidget(title_label)
+
+    banner_layout.addStretch()
+    banner_layout.addWidget(logo_text_widget)
+    banner_layout.addStretch()
 
     htmlManager = HtmlManager(window)
 
@@ -347,13 +375,62 @@ try:
     # Key press handling
     entry_field.keyPressEvent = key_handler
 
+    # --- New Right Panel ---
+    right_panel = QWidget()
+    right_layout = QVBoxLayout(right_panel)
+
+    commands_label = QLabel("Server commands")
+    commands_label.setStyleSheet("font-weight: bold; font-size: 14px; margin-top: 10px;")
+    right_layout.addWidget(commands_label)
+
+    entry_field_encode = QLineEdit()
+    entry_field_encode.setPlaceholderText("Enter a value here...")
+    right_layout.addWidget(entry_field_encode)
+
+    # Buttons for encryption methods
+    def setServerCommand(command):
+        if entry_field_encode.text() == "" and command != "hash":
+            htmlManager.addMessageBubble("ISC Chat", "Please enter a value in the encryption field")
+            return
+        else:
+            """Sets the server command based on the button clicked"""
+            if command == "hash":
+                entry_field.setText(f"/server task hash hash")
+            else:
+                entry_field.setText(f"/server task {command} encode  {entry_field_encode.text()}")
+            send_message()
+            entry_field_encode.setPlaceholderText("Enter a value here...")
+
+    shift_button = QPushButton("Shift")
+    shift_button.clicked.connect(lambda : setServerCommand("shift"))
+    vigenere_button = QPushButton("Vigenère")
+    vigenere_button.clicked.connect(lambda: setServerCommand("vigenere"))
+    rsa_button = QPushButton("RSA")
+    rsa_button.clicked.connect(lambda: setServerCommand("RSA"))
+    hash_button = QPushButton("Hash")
+    hash_button.clicked.connect(lambda: setServerCommand("hash"))
+
+    
+
+    right_layout.addWidget(shift_button)
+    right_layout.addWidget(vigenere_button)
+    right_layout.addWidget(rsa_button)
+    right_layout.addWidget(hash_button)
+
+    right_layout.addStretch()  # Push everything to the top
+
     # Layout setup
     gLayout = QGridLayout(window)
-    gLayout.addWidget(htmlManager.chat_area, 0, 0, 1, 2)
-    gLayout.addWidget(entry_field, 1, 0)
-    gLayout.addWidget(send_button, 1, 1)
-    gLayout.setRowStretch(0, 1)
-    gLayout.setRowStretch(1, 0)
+    gLayout.addWidget(banner, 0, 0, 1, 3)  # Banner on top across all columns
+    gLayout.addWidget(htmlManager.chat_area, 1, 0, 1, 2)  # Chat area takes 2/3 width
+    gLayout.addWidget(right_panel, 1, 2)  # Right panel in the third column
+    gLayout.addWidget(entry_field, 2, 0, 1, 2)  # Input field spans 2 columns
+    gLayout.addWidget(send_button, 2, 2)  # Send button under the right panel
+    gLayout.setRowStretch(1, 1)  # Chat area and right panel expand
+    gLayout.setRowStretch(2, 0)  # Input area does not expand
+    gLayout.setColumnStretch(0, 3)  # Chat area column (left)
+    gLayout.setColumnStretch(1, 1)  # Chat area column (right part if any)
+    gLayout.setColumnStretch(2, 1)  # Right panel
 
     # Start message listening thread
     listening = Thread(target=receive_message)
@@ -368,3 +445,4 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")
+

@@ -17,12 +17,6 @@ def encrypt_shift(msg, key):
 
     Returns:
         bytearray: The encrypted message as a bytearray.
-        
-    Explanation:
-        For each character in the message:
-        - The character is converted to its Unicode code point.
-        - The shift is applied to the code point.
-        - The shifted code point is converted back to bytes and stored as a 4-byte representation.
     """
     result = bytearray()
     
@@ -47,12 +41,6 @@ def encrypt_vigenere(msg, key):
 
     Returns:
         bytearray: The encrypted message as a bytearray.
-
-    Explanation:
-        For each character in the message:
-        - The character is converted to its Unicode code point.
-        - The corresponding character in the key is used to modify the character.
-        - The shifted code point is converted back to bytes and stored as a 4-byte representation.
     """
     result = bytearray()
 
